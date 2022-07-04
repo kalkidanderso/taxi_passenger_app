@@ -4,6 +4,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Dashboard from "./src/views/screens/Dashboard";
 import RegistrationScreen from "./src/views/screens/RegistrationScreen";
 import HomeScreen from "./src/views/screens/HomeScreen";
+import RequestScreen from "./src/views/screens/RequestScreen";
+import DispatchScreen from "./src/views/screens/DispatchScreen";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loader from "./src/views/components/Loader";
 
@@ -40,6 +43,8 @@ const App = () => {
             />
             <Stack.Screen name="Dashboard" component={Dashboard} />
             <Stack.Screen name="HomeScreen" component={HomeScreen} />
+            <Stack.Screen name="RequestScreen" component={RequestScreen} />
+            <Stack.Screen name="DispatchScreen" component={DispatchScreen} />
           </Stack.Navigator>
         </>
       )}

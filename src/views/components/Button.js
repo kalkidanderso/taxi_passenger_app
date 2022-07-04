@@ -6,10 +6,10 @@ const Button = ({ title, onPress = () => {} }) => {
       onPress={onPress}
       activeOpacity={0.7}
       style={{
-        height: 55,
-        width: "70%",
-        marginLeft: "15%",
-        backgroundColor: "blue",
+        height: 63,
+        width: "100%",
+        // marginLeft: -3,
+        backgroundColor: "#eab402",
         marginVertical: 20,
         justifyContent: "center",
         alignItems: "center",

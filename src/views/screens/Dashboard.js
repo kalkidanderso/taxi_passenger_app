@@ -1,10 +1,3 @@
-// import { Map, useLeaflet } from "react-leaflet";
-// import { OpenStreetMapProvider, GeoSearchControl } from "leaflet-geosearch";
-// import { SafeAreaView } from "react-native-web";
-// import { MapContainer } from "react-leaflet";
-// import { TileLayer } from "react-leaflet";
-// import { Marker } from "react-leaflet/";
-
 import { useEffect, useState } from "react";
 import {
   Text,
@@ -12,17 +5,32 @@ import {
   SafeAreaView,
   StyleSheet,
   TouchableWithoutFeedback,
+  Image,
   Keyboard,
   TextInput,
   FlatList,
   Pressable,
   Alert,
 } from "react-native";
+
 import { MaterialIcons } from "@expo/vector-icons";
 import Button from "../components/Button";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Loader from "../components/Loader";
-function Dashboard() {
+
+import { backend_url } from "./profile";
+import { socket_url } from "./profile";
+
+import socketIoClient from "socket.io-client";
+
+const socket = socketIoClient(socket_url, {
+  autoConnect: false,
+});
+
+function Dashboard({ route, navigation }) {
+  const { itemId } = route.params;
+  const { phone } = route.params;
+
   const [pickupLocation, setPickupLocation] = useState("");
   const [destination, setDestination] = useState("");
   const [data, setData] = useState();
@@ -46,6 +54,14 @@ function Dashboard() {
   const [busColor, setBusColor] = useState("black");
   const [vipColor, setVipColor] = useState("black");
 
+  useEffect(() => {
+    socket.on("message", (msg) => {
+      console.log(msg);
+    });
+
+    socket.connect();
+  }, []);
+
   const validate = () => {
     Keyboard.dismiss();
     let isValid = true;
@@ -68,36 +84,42 @@ function Dashboard() {
     // setVehicleType(vehicleType + ", " + pickupLocation + ", " + destination);
 
     const bodys = {
-      pickupLocation,
-      destination,
-      vehicleType,
+      pickupLocation: pickupLocation,
+      destination: destination,
+      vehicleType: vehicleType,
+      phoneNumber: phone,
     };
 
     let headers = new Headers();
-
+    let rs = "";
     headers.append("Content-Type", "application/json");
     headers.append("Accept", "application/json");
     headers.append("Authorization", "Basic ");
+    setLoading(true);
 
-    fetch("http://192.168.43.95:3000/api/rides", {
+    fetch(`${backend_url}/api/rides`, {
       method: "POST",
       headers: headers,
       body: JSON.stringify(bodys),
-    });
+    })
+      .then((res) => res.json())
+      .then((res) => socket.emit("passengerBooked", res.history))
+      .catch((err) => console.log(err));
+    console.log(rs);
+    setTimeout(() => {
+      try {
+        setLoading(false);
 
-    //   .then((res) => {
-    //     res.json();
-    //   })
-    //   .catch((err) => console.log(err));
-    // setLoading(true);
-    // setTimeout(() => {
-    //   try {
-    //     setLoading(false);
-    //     navigation.navigate("HomeScreen");
-    //   } catch (error) {
-    //     Alert.alert("Error", "Something went wrong");
-    //   }
-    // }, 3000);
+        navigation.navigate("HomeScreen", {
+          itemId: 86,
+          phoneNumber: phone,
+          pickupLocation: pickupLocation,
+          destination: destination,
+        });
+      } catch (error) {
+        Alert.alert("Error", "Something went wrong");
+      }
+    }, 3000);
   };
 
   const clearPickupLocation = () => {
@@ -223,14 +245,49 @@ function Dashboard() {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            marginTop: 20,
+            marginTop: 10,
           }}
         >
-          {/* <Text>Passengers Booking Page</Text> */}
-          <Text>{vehicleType}</Text>
+          <View>
+            <Image
+              source={require("../../../assets/taxi/grad2.jpg")}
+              style={{
+                width: 320,
+                height: 200,
+                borderBottomRightRadius: 20,
+                borderBottomLeftRadius: 20,
+              }}
+            />
+            <View
+              style={{
+                position: "absolute",
+                color: "white",
+                left: 30,
+                top: 40,
+              }}
+            >
+              <Text style={{ color: "#eab402", fontSize: 20 }}>Order</Text>
+              <Text style={{ color: "white", fontSize: 25 }}>Where do you</Text>
+              <Text style={{ color: "white", fontSize: 25 }}>want to go?</Text>
+              <Text style={{ color: "white", fontSize: 12 }}>
+                Please enter your initial location
+              </Text>
+              <Text style={{ color: "white", fontSize: 12 }}>
+                and destination.
+              </Text>
+            </View>
+          </View>
+          {/* <Text style={{ fontSize: 20 }}>Passengers Booking Page</Text> */}
+          {/* <Text>{vehicleType}</Text> */}
         </View>
-        <View>
-          <Text style={styles.inputLabel}>Pickup Location</Text>
+        <View
+          style={{
+            padding: 20,
+            borderStyle: "solid",
+            marginTop: -10,
+          }}
+        >
+          <Text style={styles.inputLabel}>Where to?</Text>
           <TextInput
             placeholder="Pickup Location"
             value={pickupLocation}
@@ -247,7 +304,7 @@ function Dashboard() {
               <Pressable
                 style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
                 onPress={() => {
-                  alert("navigate passing" + JSON.stringify(item));
+                  // alert("navigate passing" + JSON.stringify(item));
                   setPickupLocation(
                     item.address.name +
                       ", " +
@@ -265,9 +322,8 @@ function Dashboard() {
             showsVerticalScrollIndicator={false}
           />
         </View>
-        {/* ////////////////////////////////////////////////////////// */}
-        <View style={{ marginTop: 20 }}>
-          <Text style={styles.inputLabelDestination}>Destination</Text>
+        <View style={{ marginTop: -20, padding: 20 }}>
+          {/* <Text style={styles.inputLabelDestination}>Destination</Text> */}
           <TextInput
             placeholder="Destination"
             value={destination}
@@ -284,7 +340,7 @@ function Dashboard() {
               <Pressable
                 style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
                 onPress={() => {
-                  alert("navigate passing" + JSON.stringify(item));
+                  // alert("navigate passing" + JSON.stringify(item));
                   setDestination(
                     item.address.name +
                       ", " +
@@ -305,42 +361,44 @@ function Dashboard() {
 
         <View
           style={{
-            marginTop: 100,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            marginTop: 20,
+            // display: "flex",
+            // justifyContent: "center",
+            // alignItems: "center",
+            marginTop: -10,
             flexDirection: "column",
           }}
         >
-          <Text style={{ fontSize: 20 }}>Vehicle Type</Text>
+          <Text style={{ fontSize: 14, marginLeft: 20, color: "#333" }}>
+            Vehicle Type
+          </Text>
           <View
             style={{
-              marginTop: 50,
+              marginTop: 10,
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              marginTop: 20,
+              marginTop: 10,
               flexDirection: "row",
             }}
           >
             <View
               style={{
                 marginTop: 20,
-                marginRight: 70,
+                marginRight: 40,
                 marginLeft: 60,
-                borderColor: "black",
-                borderStyle: "solid",
-                borderWidth: 4,
+                borderColor: "#ccc",
+                borderWidth: 1,
                 borderRadius: 5,
                 padding: 10,
+                paddingLeft: 18,
+                paddingRight: 18,
                 color: vipColor,
                 backgroundColor: vipBackgroundColor,
               }}
             >
               <Icon
                 name="taxi"
-                size={30}
+                size={20}
                 style={{ color: vipColor }}
                 onPress={() => changeVehicleType("vip")}
               />
@@ -355,10 +413,9 @@ function Dashboard() {
               style={{
                 marginTop: 20,
                 marginRight: 70,
-                borderColor: "black",
-                borderStyle: "solid",
-                borderWidth: 4,
                 borderRadius: 5,
+                borderColor: "#ccc",
+                borderWidth: 1,
                 padding: 5,
                 paddingTop: 10,
                 paddingBottom: 10,
@@ -370,9 +427,9 @@ function Dashboard() {
             >
               <Icon
                 name="bus"
-                size={30}
+                size={20}
                 color="#333"
-                style={{ marginLeft: 10, color: busColor }}
+                style={{ marginLeft: 20, color: busColor }}
                 onPress={() => changeVehicleType("bus")}
               />
               <Text
@@ -386,39 +443,41 @@ function Dashboard() {
             </View>
           </View>
         </View>
-        <Button title="Order" style={{ width: 20 }} onPress={validate} />
+        <Button title="Order" style={{ width: 10 }} onPress={validate} />
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
 }
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, marginTop: 40 },
-  inputLabel: { marginLeft: 12, marginVertical: 5, fontSize: 12 },
+  container: { flex: 1, marginTop: 20 },
+  inputLabel: {
+    color: "#333",
+    borderRadius: 10,
+    marginBottom: 10,
+  },
   inputLabelDestination: { marginLeft: 12, fontSize: 12 },
 
   input: {
-    height: 40,
-    marginHorizontal: 12,
+    padding: 10,
     borderWidth: 1,
-    paddingHorizontal: 10,
     borderRadius: 5,
+    borderColor: "#ccc",
+    backgroundColor: "#f3f1f1",
   },
   clear: {
     position: "absolute",
-    top: 30,
-    right: 20,
-    backgroundColor: "black",
-    color: "white",
+    top: 55,
+    right: 25,
+    color: "#333",
     padding: 7,
     opacity: 0.5,
   },
   clearDestination: {
     position: "absolute",
-    top: 20,
-    right: 20,
-    backgroundColor: "black",
-    color: "white",
+    top: 25,
+    right: 25,
+    color: "#333",
     padding: 7,
     opacity: 0.5,
   },
@@ -429,8 +488,8 @@ export const styles = StyleSheet.create({
     padding: 15,
   },
   textContainer: { marginLeft: 10, flexShrink: 1 },
-  mainText: { fontWeight: 700 },
-  country: { fontSize: 12 },
+  mainText: { fontWeight: "700" },
+  country: { fontSize: "12px" },
 });
 
 export default Dashboard;
